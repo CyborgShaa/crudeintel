@@ -3,11 +3,10 @@
 import feedparser
 from datetime import datetime
 import pytz
+import traceback
 
-# Choose timezone for display (India Standard Time)
 tz = pytz.timezone("Asia/Kolkata")
 
-# Add more feeds later
 RSS_FEEDS = [
     "https://oilprice.com/rss/main",
     "https://feeds.reuters.com/reuters/energyNews",
@@ -18,17 +17,33 @@ RSS_FEEDS = [
 
 def fetch_news(limit_per_feed=5):
     articles = []
-    
+
     for feed_url in RSS_FEEDS:
-        parsed = feedparser.parse(feed_url)
-        
-        for entry in parsed.entries[:limit_per_feed]:
-            articles.append({
-                "title": entry.title,
-                "link": entry.link,
-                "source": parsed.feed.title if "title" in parsed.feed else "Unknown",
-                "timestamp": datetime(*entry.published_parsed[:6]).astimezone(tz),
-                "impact": "Neutral"  # Default tag, AI/logic later
-            })
-    
+        try:
+            parsed = feedparser.parse(feed_url)
+
+            if not parsed.entries:
+                print(f"⚠️ No entries found in: {feed_url}")
+                continue
+
+            source_name = parsed.feed.get("title", "Unknown Source")
+
+            for entry in parsed.entries[:limit_per_feed]:
+                pub_time = (
+                    datetime(*entry.published_parsed[:6]).astimezone(tz)
+                    if "published_parsed" in entry
+                    else datetime.now(tz)
+                )
+                articles.append({
+                    "title": entry.title,
+                    "link": entry.link,
+                    "source": source_name,
+                    "timestamp": pub_time,
+                    "impact": "Neutral"
+                })
+
+        except Exception as e:
+            print(f"❌ Error fetching {feed_url}: {e}")
+            traceback.print_exc()
+
     return sorted(articles, key=lambda x: x["timestamp"], reverse=True)
