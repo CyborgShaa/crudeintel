@@ -10,7 +10,7 @@ tz = pytz.timezone("Asia/Kolkata")
 # Add more feeds later
 RSS_FEEDS = [
     "https://oilprice.com/rss/main",
-    "https://www.reutersagency.com/feed/?best-topics=energy&post_type=best"
+    "https://feeds.reuters.com/reuters/energyNews"
 ]
 
 def fetch_news(limit_per_feed=5):
