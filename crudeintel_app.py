@@ -1,59 +1,68 @@
 import streamlit as st
 from datetime import datetime
 import pytz
+import time
 
 from news_fetcher import fetch_news
 from newsapi_fetcher import fetch_newsapi_articles
 from telegram_alerts import send_telegram_alert
 
-# Timezone
+# Set timezone for India (Kolkata)
 tz = pytz.timezone("Asia/Kolkata")
 current_time = datetime.now(tz).strftime('%b %d, %I:%M %p')
 
-# Streamlit UI config
+# Streamlit UI setup
 st.set_page_config(page_title="CrudeIntel News Engine", layout="centered")
 st.title("🛢️ CrudeIntel - Oil Market News")
 st.markdown("Get live and impactful crude oil market news in one place.")
 st.caption(f"🔄 Last updated: {current_time}")
 st.divider()
 
-# Impact emoji mapping
+# Impact emoji mapping for news
 impact_emojis = {
     "Bullish": "🟢",
     "Bearish": "🔴",
     "Neutral": "⚪"
 }
 
-# 🔍 Keywords to auto-alert on
+# 🔍 Keywords for automatic alerts
 ALERT_KEYWORDS = [
     "opec", "iran", "fed", "sanction", "inventory", "reserve",
     "pipeline", "cut", "strike", "production", "conflict"
 ]
 
-# Fetch from RSS + NewsAPI
+# Auto-refresh setup (in minutes)
+AUTO_REFRESH_MINUTES = 5
+
+# Fetch news from RSS + NewsAPI
 rss_articles = fetch_news(limit_per_feed=5)
 api_articles = fetch_newsapi_articles(query="crude oil OR OPEC OR inventory", limit=5)
 news_data = sorted(rss_articles + api_articles, key=lambda x: x["timestamp"], reverse=True)
 
-# Track already-alerted articles (for this run)
-alerted_articles = []
+# Track alerted articles (in session)
+if "alerted_titles" not in st.session_state:
+    st.session_state.alerted_titles = set()
 
-# 🔁 Display news + alert logic
+# 🔁 Display news + handle alert logic
 for news in news_data:
     title_lower = news["title"].lower()
     matched = any(keyword in title_lower for keyword in ALERT_KEYWORDS)
 
-    # ✅ Auto-send alert if keyword matched
-    if matched and news["title"] not in alerted_articles:
+    # Send alert if matched and not already sent
+    if matched and news["title"] not in st.session_state.alerted_titles:
         message = f"🚨 *{news['title']}*\n📰 {news['source']} | 🕒 {news['timestamp'].strftime('%b %d, %I:%M %p')}\n🔗 {news['link']}"
         send_telegram_alert(message)
-        alerted_articles.append(news["title"])
+        st.session_state.alerted_titles.add(news["title"])
 
-    # Display in app
+    # Show on Streamlit UI
     st.markdown(f"### {impact_emojis.get(news['impact'], '⚪')} [{news['title']}]({news['link']})")
     st.caption(f"🕒 {news['timestamp'].strftime('%b %d, %I:%M %p')} | 📰 {news['source']}")
     st.markdown("---")
 
-# 🧪 Manual test button
+# 🧪 Test button for manual Telegram alerts
 if st.button("Send Test Alert to Telegram"):
     send_telegram_alert("🚨 This is a test alert from CrudeIntel (auto-alert system live).")
+
+# ⏱️ Auto-refresh every X minutes
+time.sleep(AUTO_REFRESH_MINUTES * 60)
+st.experimental_rerun()
