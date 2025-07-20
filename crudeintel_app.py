@@ -37,7 +37,7 @@ AUTO_REFRESH_MINUTES = 5
 
 # Fetch news from RSS + NewsAPI
 rss_articles = fetch_news(limit_per_feed=5)
-api_articles = fetch_newsapi_fetcher(query="crude oil OR OPEC OR inventory", limit=5)
+api_articles = fetch_newsapi_articles(query="crude oil OR OPEC OR inventory", limit=5)
 news_data = sorted(rss_articles + api_articles, key=lambda x: x["timestamp"], reverse=True)
 
 # ✅ Filter out broken timestamps and old news
