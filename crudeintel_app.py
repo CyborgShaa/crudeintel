@@ -5,7 +5,7 @@ import time
 
 from news_fetcher import fetch_news
 from newsapi_fetcher import fetch_newsapi_articles
-from telegram_alerts import send_telegram_alert
+from telegram_alerts import send_telegram_alert, format_telegram_message
 from summarizer import analyze_news  # 🧠 AI summarizer
 
 # Set timezone for India (Kolkata)
@@ -19,61 +19,54 @@ st.markdown("Get live and impactful crude oil market news in one place.")
 st.caption(f"🔄 Last updated: {current_time}")
 st.divider()
 
-# Impact emoji mapping for news
+# Emoji mapping for Streamlit UI
 impact_emojis = {
     "Bullish": "🟢",
     "Bearish": "🔴",
     "Neutral": "⚪"
 }
 
-# 🔍 Keywords for automatic alerts
-ALERT_KEYWORDS = [
-    "opec", "iran", "fed", "sanction", "inventory", "reserve",
-    "pipeline", "cut", "strike", "production", "conflict"
-]
-
-# Auto-refresh setup (in minutes)
+# Auto-refresh setup
 AUTO_REFRESH_MINUTES = 5
+MAX_NEWS_AGE_MINUTES = 60  # Alert window reduced to 60 mins
 
-# Fetch news from RSS + NewsAPI
+# Fetch from sources
 rss_articles = fetch_news(limit_per_feed=5)
 api_articles = fetch_newsapi_articles(query="crude oil OR OPEC OR inventory", limit=5)
 news_data = sorted(rss_articles + api_articles, key=lambda x: x["timestamp"], reverse=True)
 
-# ✅ Filter out broken timestamps and old news
+# Valid timestamp + last 24h news
 news_data = [n for n in news_data if isinstance(n["timestamp"], datetime)]
 news_data = [n for n in news_data if (datetime.now(tz) - n["timestamp"]).total_seconds() <= 86400]
 
-# Track alerted articles (in session)
+# Track sent alerts
 if "alerted_titles" not in st.session_state:
     st.session_state.alerted_titles = set()
 
-# 🔁 Display news + handle alert logic
+# Loop and process each news
 for news in news_data:
-    title_lower = news["title"].lower()
-    matched = any(keyword in title_lower for keyword in ALERT_KEYWORDS)
+    # AI summarization
+    summary, impact = analyze_news(news["title"], news.get("description", ""), provider="gemini")
+    news["summary"] = summary
+    news["impact"] = impact
 
-    # 🧠 AI summarization
-    summary, ai_impact = analyze_news(news["title"], provider="gemini")
-
-    # ✅ Check if the news is recent (within 600 minutes, ~10 hrs)
+    # Alert condition: only Bullish/Bearish + under 60 minutes old
     news_age_minutes = (datetime.now(tz) - news["timestamp"]).total_seconds() / 60
-
-    if matched and news["title"] not in st.session_state.alerted_titles and news_age_minutes <= 600:
-        message = f"🚨 *{news['title']}*\n📌 {summary or 'No summary'}\n📰 {news['source']} | 🕒 {news['timestamp'].strftime('%b %d, %I:%M %p')}\n🔗 {news['link']}"
+    if impact in ["Bullish", "Bearish"] and news["title"] not in st.session_state.alerted_titles and news_age_minutes <= MAX_NEWS_AGE_MINUTES:
+        message = format_telegram_message(news)
         send_telegram_alert(message)
         st.session_state.alerted_titles.add(news["title"])
 
-    # Show on Streamlit UI
-    st.markdown(f"### {impact_emojis.get(ai_impact, '⚪')} [{news['title']}]({news['link']})")
+    # Show on UI
+    st.markdown(f"### {impact_emojis.get(impact, '⚪')} [{news['title']}]({news['link']})")
     st.caption(f"🕒 {news['timestamp'].strftime('%b %d, %I:%M %p')} | 📰 {news['source']}")
     st.markdown(f"**Summary**: {summary or 'N/A'}")
     st.markdown("---")
 
-# 🧪 Test button for manual Telegram alerts
+# Test alert button
 if st.button("Send Test Alert to Telegram"):
     send_telegram_alert("🚨 This is a test alert from CrudeIntel (auto-alert system live).")
 
-# ⏱️ Auto-refresh every X minutes
+# Auto-refresh every 5 mins
 time.sleep(AUTO_REFRESH_MINUTES * 60)
-st.experimental_rerun()
+st.rerun()
