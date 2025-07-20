@@ -1,44 +1,39 @@
 import os
-from openai import OpenAI
+import google.generativeai as genai
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Configure Gemini with your key
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-def analyze_news(title, description=None, provider="gpt"):
+model = genai.GenerativeModel("gemini-pro")
+
+def analyze_news(title, description=None, provider="gemini"):
     prompt = f"""
-You are a market analyst. Read this headline and summarize it in one sentence. Then classify its impact on crude oil as Bullish, Bearish, or Neutral.
+You are a market analyst. Read this headline and description, then:
+1. Summarize the news in one sentence.
+2. Classify its impact on crude oil as Bullish, Bearish, or Neutral.
 
 Title: "{title}"
 Description: "{description or 'N/A'}"
 
-Respond in format:
-Summary: <your summary>
+Respond in this format:
+Summary: <one-line summary>
 Impact: <Bullish/Bearish/Neutral>
 """
 
     try:
-        if provider == "gpt":
-            chat_completion = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=100,
-                temperature=0.3,
-            )
+        response = model.generate_content(prompt)
+        content = response.text.strip()
 
-            content = chat_completion.choices[0].message.content.strip()
+        summary = ""
+        impact = "Neutral"
+        for line in content.splitlines():
+            if line.lower().startswith("summary"):
+                summary = line.split(":", 1)[1].strip()
+            elif line.lower().startswith("impact"):
+                impact = line.split(":", 1)[1].strip().capitalize()
 
-            summary = ""
-            impact = "Neutral"
-            for line in content.splitlines():
-                if line.lower().startswith("summary"):
-                    summary = line.split(":", 1)[1].strip()
-                elif line.lower().startswith("impact"):
-                    impact = line.split(":", 1)[1].strip().capitalize()
-
-            return summary, impact
-
-        else:
-            return "❌ Unsupported provider", "Neutral"
+        return summary, impact
 
     except Exception as e:
-        print(f"❌ Summarization failed: {e}")
-        return f"AI failed: {e}", "Neutral"
+        print(f"❌ Gemini summarization failed: {e}")
+        return f"Gemini AI failed: {e}", "Neutral"
