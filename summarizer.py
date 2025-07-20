@@ -1,10 +1,11 @@
 import os
 import google.generativeai as genai
 
-# Configure Gemini with your key
+# Set up the Gemini API key
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-model = genai.GenerativeModel("gemini-pro")
+# Create Gemini Pro model
+model = genai.GenerativeModel("models/gemini-pro")
 
 def analyze_news(title, description=None, provider="gemini"):
     prompt = f"""
