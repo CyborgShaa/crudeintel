@@ -1,11 +1,11 @@
 import os
 import google.generativeai as genai
 
-# Load Gemini API key from secrets
+# Load Gemini API key from environment variables
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-# ✅ Use correct model name — no "models/" prefix
-model = genai.GenerativeModel("gemini-pro")
+# Use a supported model (e.g., gemini-1.5-pro or gemini-2.0-flash)
+model = genai.GenerativeModel("gemini-1.5-pro")  # Updated model name
 
 def analyze_news(title, description=None, provider="gemini"):
     prompt = f"""
@@ -22,7 +22,7 @@ Impact: <Bullish/Bearish/Neutral>
 """
 
     try:
-        # ✅ Correct method for Gemini Pro
+        # Generate content using the model
         response = model.generate_content(prompt)
         content = response.text.strip()
 
@@ -39,3 +39,11 @@ Impact: <Bullish/Bearish/Neutral>
     except Exception as e:
         print(f"❌ Gemini summarization failed: {e}")
         return f"Gemini AI failed: {e}", "Neutral"
+
+# Example usage
+if __name__ == "__main__":
+    title = "OPEC Announces Increase in Oil Production Quotas"
+    description = "OPEC countries have agreed to increase oil production by 500,000 barrels per day starting next month."
+    summary, impact = analyze_news(title, description)
+    print(f"Summary: {summary}")
+    print(f"Impact: {impact}")
