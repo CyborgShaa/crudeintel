@@ -6,6 +6,7 @@ import time
 from news_fetcher import fetch_news
 from newsapi_fetcher import fetch_newsapi_articles
 from telegram_alerts import send_telegram_alert
+from summarizer import analyze_news  # 🧠 AI summarizer
 
 # Set timezone for India (Kolkata)
 tz = pytz.timezone("Asia/Kolkata")
@@ -36,7 +37,7 @@ AUTO_REFRESH_MINUTES = 5
 
 # Fetch news from RSS + NewsAPI
 rss_articles = fetch_news(limit_per_feed=5)
-api_articles = fetch_newsapi_articles(query="crude oil OR OPEC OR inventory", limit=5)
+api_articles = fetch_newsapi_fetcher(query="crude oil OR OPEC OR inventory", limit=5)
 news_data = sorted(rss_articles + api_articles, key=lambda x: x["timestamp"], reverse=True)
 
 # ✅ Filter out broken timestamps and old news
@@ -52,17 +53,21 @@ for news in news_data:
     title_lower = news["title"].lower()
     matched = any(keyword in title_lower for keyword in ALERT_KEYWORDS)
 
-    # ✅ Check if the news is recent (within 60 minutes)
+    # 🧠 AI summarization
+    summary, ai_impact = analyze_news(news["title"])
+
+    # ✅ Check if the news is recent (within 600 minutes, ~10 hrs)
     news_age_minutes = (datetime.now(tz) - news["timestamp"]).total_seconds() / 60
 
     if matched and news["title"] not in st.session_state.alerted_titles and news_age_minutes <= 600:
-        message = f"🚨 *{news['title']}*\n📰 {news['source']} | 🕒 {news['timestamp'].strftime('%b %d, %I:%M %p')}\n🔗 {news['link']}"
+        message = f"🚨 *{news['title']}*\n📌 {summary or 'No summary'}\n📰 {news['source']} | 🕒 {news['timestamp'].strftime('%b %d, %I:%M %p')}\n🔗 {news['link']}"
         send_telegram_alert(message)
         st.session_state.alerted_titles.add(news["title"])
 
     # Show on Streamlit UI
-    st.markdown(f"### {impact_emojis.get(news['impact'], '⚪')} [{news['title']}]({news['link']})")
+    st.markdown(f"### {impact_emojis.get(ai_impact, '⚪')} [{news['title']}]({news['link']})")
     st.caption(f"🕒 {news['timestamp'].strftime('%b %d, %I:%M %p')} | 📰 {news['source']}")
+    st.markdown(f"**Summary**: {summary or 'N/A'}")
     st.markdown("---")
 
 # 🧪 Test button for manual Telegram alerts
