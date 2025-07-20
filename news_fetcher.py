@@ -3,47 +3,67 @@
 import feedparser
 from datetime import datetime
 import pytz
-import traceback
 
+# Set timezone for India
 tz = pytz.timezone("Asia/Kolkata")
 
-RSS_FEEDS = [
-    "https://oilprice.com/rss/main",
-    "https://feeds.reuters.com/reuters/energyNews",
-    "https://www.eia.gov/rss/todayinenergy.xml",
-    "https://www.investing.com/rss/news_11.rss",
-    "https://energy.einnews.com/all_rss"
+# ✅ Elite Crude-Only Source List
+RSS_FEEDS = {
+    "OilPrice": "https://oilprice.com/rss/main",
+    "Reuters Energy": "https://feeds.reuters.com/reuters/USenergyNews",
+    "CNBC Energy": "https://www.cnbc.com/id/19836768/device/rss/rss.html",
+    "World Oil": "https://www.worldoil.com/rss/news/",
+    "EIA": "https://www.eia.gov/rss/news.xml",
+    "Investing - Commodities": "https://www.investing.com/rss/news_11.rss",
+    "S&P Global": "https://www.spglobal.com/commodityinsights/en/rss",
+    "Bloomberg Energy": "https://www.bloomberg.com/rss/energy"
+}
+
+# ✅ Crude oil filter terms — skip everything else
+CRUDE_KEYWORDS = [
+    "crude", "oil", "brent", "wti", "opec", "barrel", "inventory",
+    "refinery", "rig", "baker hughes", "gasoline", "drilling",
+    "sanction", "reserves", "pipeline", "energy market", "production cut"
 ]
 
-def fetch_news(limit_per_feed=5):
-    articles = []
+def is_crude_related(text: str) -> bool:
+    return any(word in text.lower() for word in CRUDE_KEYWORDS)
 
-    for feed_url in RSS_FEEDS:
+def fetch_news(limit_per_feed=6):
+    all_articles = []
+
+    for source_name, url in RSS_FEEDS.items():
         try:
-            parsed = feedparser.parse(feed_url)
+            feed = feedparser.parse(url)
+            entries = feed.entries[:limit_per_feed]
 
-            if not parsed.entries:
-                print(f"⚠️ No entries found in: {feed_url}")
-                continue
+            for entry in entries:
+                title = entry.title.strip()
+                link = entry.link.strip()
+                published = entry.get("published", "") or entry.get("pubDate", "")
+                description = entry.get("summary", "") or ""
 
-            source_name = parsed.feed.get("title", "Unknown Source")
+                # 🛢️ Filter for crude-related titles or summaries
+                if not is_crude_related(title + " " + description):
+                    continue  # Skip non-crude content
 
-            for entry in parsed.entries[:limit_per_feed]:
-                pub_time = (
-                    datetime(*entry.published_parsed[:6]).astimezone(tz)
-                    if "published_parsed" in entry
-                    else datetime.now(tz)
-                )
-                articles.append({
-                    "title": entry.title,
-                    "link": entry.link,
+                # Parse time (safe fallback)
+                try:
+                    parsed_time = datetime(*entry.published_parsed[:6])
+                    parsed_time = pytz.utc.localize(parsed_time).astimezone(tz)
+                except:
+                    parsed_time = datetime.now(tz)
+
+                # Final cleaned article
+                all_articles.append({
+                    "title": title,
+                    "link": link,
+                    "timestamp": parsed_time,
                     "source": source_name,
-                    "timestamp": pub_time,
-                    "impact": "Neutral"
+                    "impact": "Neutral"  # AI will set this
                 })
 
         except Exception as e:
-            print(f"❌ Error fetching {feed_url}: {e}")
-            traceback.print_exc()
+            print(f"❌ Failed to parse {source_name}: {e}")
 
-    return sorted(articles, key=lambda x: x["timestamp"], reverse=True)
+    return all_articles
