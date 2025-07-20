@@ -5,7 +5,7 @@ import google.generativeai as genai
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 # Use a supported model (e.g., gemini-1.5-pro or gemini-2.0-flash)
-model = genai.GenerativeModel("gemini-1.5-pro")  # Updated model name
+model = genai.GenerativeModel("gemini-2.0-flash")  # Updated model name
 
 def analyze_news(title, description=None, provider="gemini"):
     prompt = f"""
