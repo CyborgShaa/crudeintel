@@ -1,11 +1,11 @@
 import os
 import google.generativeai as genai
 
-# Set up the Gemini API key
+# Load Gemini API key from secrets
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-# Create Gemini Pro model
-model = genai.GenerativeModel("models/gemini-pro")
+# ✅ Use correct model name — no "models/" prefix
+model = genai.GenerativeModel("gemini-pro")
 
 def analyze_news(title, description=None, provider="gemini"):
     prompt = f"""
@@ -22,6 +22,7 @@ Impact: <Bullish/Bearish/Neutral>
 """
 
     try:
+        # ✅ Correct method for Gemini Pro
         response = model.generate_content(prompt)
         content = response.text.strip()
 
