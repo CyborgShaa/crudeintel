@@ -4,28 +4,31 @@ import requests
 import os
 from dotenv import load_dotenv
 
-# Load environment variables (for local testing)
+# Load environment variables for local testing
 load_dotenv()
 
-# Get token and chat ID from environment
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-
 def send_telegram_alert(message: str):
-    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
-        print("❌ Telegram credentials are missing.")
-        return
+    # Loop over 3 bot-token/chat-id pairs
+    for i in [1, 2, 3]:
+        token = os.getenv(f"TELEGRAM_BOT_TOKEN_{i}")
+        chat_id = os.getenv(f"TELEGRAM_CHAT_ID_{i}")
 
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": message,
-        "parse_mode": "Markdown"
-    }
+        if not token or not chat_id:
+            print(f"⚠️ Bot {i} credentials missing. Skipping.")
+            continue
 
-    try:
-        response = requests.post(url, data=payload)
-        if response.status_code != 200:
-            print(f"❌ Telegram Error: {response.text}")
-    except Exception as e:
-        print(f"❌ Exception sending alert: {e}")
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": message,
+            "parse_mode": "Markdown"
+        }
+
+        try:
+            response = requests.post(url, data=payload)
+            if response.status_code == 200:
+                print(f"✅ Alert sent via Bot {i} → Chat ID: {chat_id}")
+            else:
+                print(f"❌ Bot {i} Error: {response.status_code} → {response.text}")
+        except Exception as e:
+            print(f"❌ Exception sending alert via Bot {i}: {e}")
