@@ -21,9 +21,23 @@ RSS_FEEDS = {
 
 # ✅ Crude oil filter terms — skip everything else
 CRUDE_KEYWORDS = [
-    "crude", "oil", "brent", "wti", "opec", "barrel", "inventory",
-    "refinery", "rig", "baker hughes", "gasoline", "drilling",
-    "sanction", "reserves", "pipeline", "energy market", "production cut"
+    # Core crude terms
+    "crude oil", "brent", "wti", "opec", "opec+",
+
+    # Price & market dynamics
+    "oil price", "oil futures", "crude futures", "oil market",
+    "barrel price", "oil benchmark",
+
+    # Production & supply
+    "oil production", "crude production", "oil supply", "oil inventories",
+    "shale oil", "oil output", "oil drilling", "crude exports",
+
+    # Geopolitical, policy & infrastructure
+    "oil sanctions", "oil embargo", "oil pipeline", "crude demand",
+    "oil refinery", "oil rig", "petroleum",
+
+    # Optional: Specific crude types
+    "light sweet crude", "heavy crude", "sour crude", "shale crude", "offshore oil"
 ]
 
 def is_crude_related(text: str) -> bool:
