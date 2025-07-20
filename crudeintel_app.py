@@ -54,7 +54,7 @@ for news in news_data:
     matched = any(keyword in title_lower for keyword in ALERT_KEYWORDS)
 
     # 🧠 AI summarization
-    summary, ai_impact = analyze_news(news["title"])
+    summary, ai_impact = analyze_news(news["title"], provider="gemini")
 
     # ✅ Check if the news is recent (within 600 minutes, ~10 hrs)
     news_age_minutes = (datetime.now(tz) - news["timestamp"]).total_seconds() / 60
