@@ -1,44 +1,48 @@
 import os
 import openai
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-def analyze_news(title, description=None):
+def analyze_news(title, description=None, provider="gpt"):
     prompt = f"""
-You are a market analyst. Read this headline and summarize it in one line. Then classify its market impact on crude oil as Bullish, Bearish, or Neutral.
+You are a market analyst. Read this headline and summarize it in one sentence. Then classify its impact on crude oil as Bullish, Bearish, or Neutral.
 
 Title: "{title}"
 Description: "{description or 'N/A'}"
 
-Respond in the format:
-Summary: <one-line summary>
+Respond in format:
+Summary: <your summary>
 Impact: <Bullish/Bearish/Neutral>
 """
 
     try:
+        if provider == "grok":
+            openai.api_key = os.getenv("GROK_API_KEY")
+            openai.api_base = "https://api.x.ai/v1"
+            model = "grok-beta"
+        else:
+            openai.api_key = os.getenv("OPENAI_API_KEY")
+            openai.api_base = "https://api.openai.com/v1"
+            model = "gpt-4"
+
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model=model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=100,
-            temperature=0.4,
+            temperature=0.3,
         )
 
-        # ✅ Debug print statements
-        print("🔁 GPT Prompt Sent")
-        print("🔁 GPT Response:", response.choices[0].message.content.strip())
-
         content = response.choices[0].message.content.strip()
-        summary_line = ""
-        impact_tag = "Neutral"
+        print(f"🤖 {provider.upper()} Response: {content}")
 
+        summary = ""
+        impact = "Neutral"
         for line in content.splitlines():
             if line.lower().startswith("summary"):
-                summary_line = line.split(":", 1)[1].strip()
+                summary = line.split(":", 1)[1].strip()
             elif line.lower().startswith("impact"):
-                impact_tag = line.split(":", 1)[1].strip().capitalize()
+                impact = line.split(":", 1)[1].strip().capitalize()
 
-        return summary_line, impact_tag
+        return summary, impact
 
     except Exception as e:
-        print(f"❌ AI summarization failed: {e}")
-        return None, "Neutral"
+        print(f"❌ {provider.upper()} summarization failed: {e}")
+        return f"{provider.upper()} AI failed", "Neutral"
