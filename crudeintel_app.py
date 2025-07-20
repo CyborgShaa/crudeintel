@@ -55,7 +55,7 @@ for news in news_data:
     # ✅ Check if the news is recent (within 60 minutes)
     news_age_minutes = (datetime.now(tz) - news["timestamp"]).total_seconds() / 60
 
-    if matched and news["title"] not in st.session_state.alerted_titles and news_age_minutes <= 60:
+    if matched and news["title"] not in st.session_state.alerted_titles and news_age_minutes <= 600:
         message = f"🚨 *{news['title']}*\n📰 {news['source']} | 🕒 {news['timestamp'].strftime('%b %d, %I:%M %p')}\n🔗 {news['link']}"
         send_telegram_alert(message)
         st.session_state.alerted_titles.add(news["title"])
