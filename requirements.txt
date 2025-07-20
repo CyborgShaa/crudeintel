@@ -2,3 +2,5 @@ streamlit
 python-dotenv
 requests
 feedparser
+pytz
+openai
