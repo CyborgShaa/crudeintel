@@ -1,5 +1,3 @@
-# summarizer.py
-
 import os
 import openai
 
@@ -24,7 +22,6 @@ Impact: <Bullish/Bearish/Neutral>
             max_tokens=100,
             temperature=0.4,
         )
-
         content = response.choices[0].message.content.strip()
         summary_line = ""
         impact_tag = "Neutral"
