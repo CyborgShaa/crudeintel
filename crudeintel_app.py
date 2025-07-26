@@ -1,4 +1,10 @@
 import streamlit as st
+
+# UptimeRobot ping check
+if st.query_params.get("uptime") == "1":
+    st.write("Ping OK")
+    st.stop()
+
 from datetime import datetime
 import pytz
 import time
